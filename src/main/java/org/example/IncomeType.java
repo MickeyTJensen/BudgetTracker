@@ -1,7 +1,7 @@
 package org.example;
 
 public enum IncomeType {
-    SALARY,
+    LÖN,
     BONUS,
-    OTHER
+    BIDRAG
 }

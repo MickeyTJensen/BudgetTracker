@@ -4,20 +4,24 @@ import org.example.ExpenseType;
 import org.example.IncomeType;
 import org.example.Observer.BudgetObserver;
 import org.example.Strategy.BudgetStrategy;
-import org.example.Strategy.SimpleBudgetStrategy;
 
 import java.util.*;
 
 public class BudgetModel {
     private Map<IncomeType, Double> incomes = new EnumMap<>(IncomeType.class);
     private Map<ExpenseType, Double> expenses = new EnumMap<>(ExpenseType.class);
-    private BudgetStrategy strategy;
+    private BudgetStrategy defaultStrategy;
+    private BudgetStrategy taxStrategy;
+    private List<BudgetObserver> observers = new ArrayList<>();
 
-    public BudgetModel(BudgetStrategy strategy) {
-        this.strategy = strategy;
-        incomes = new HashMap<>();
-        expenses = new HashMap<>();
+    // Konstruktor som tar emot två strategier
+    public BudgetModel(BudgetStrategy defaultStrategy, BudgetStrategy taxStrategy) {
+        this.defaultStrategy = defaultStrategy;
+        this.taxStrategy = taxStrategy;
+        initializeAccounts();
+    }
 
+    private void initializeAccounts() {
         for (IncomeType type : IncomeType.values()) {
             incomes.put(type, 0.0);
         }
@@ -27,7 +31,11 @@ public class BudgetModel {
     }
 
     public void setIncome(IncomeType type, double amount) {
-        incomes.put(type, amount);
+        double adjustedAmount = amount;
+        if (type == IncomeType.LÖN) {
+            adjustedAmount = taxStrategy.calculateBudget(Collections.singletonMap(type, amount), Collections.emptyMap());
+        }
+        incomes.put(type, adjustedAmount);
         notifyObservers();
     }
 
@@ -36,26 +44,17 @@ public class BudgetModel {
         notifyObservers();
     }
 
-    public Map<IncomeType, Double> getIncomes() {
-        return incomes;
+    private void clearAll() {
+        for (IncomeType type : IncomeType.values()) {
+            incomes.put(type, 0.0);
+        }
+        for (ExpenseType type : ExpenseType.values()) {
+            expenses.put(type, 0.0);
+        }
     }
-
-    public Map<ExpenseType, Double> getExpenses() {
-        return expenses;
-    }
-
-    public double calculateBudget() {
-        return strategy.calculateBudget(incomes, expenses);
-    }
-
-    private List<BudgetObserver> observers = new ArrayList<>();
 
     public void addObserver(BudgetObserver observer) {
         observers.add(observer);
-    }
-
-    public void removeObserver(BudgetObserver observer) {
-        observers.remove(observer);
     }
 
     protected void notifyObservers() {
@@ -63,22 +62,30 @@ public class BudgetModel {
             observer.update(this);
         }
     }
-    public void addIncome(IncomeType type, double amount) {
-        incomes.put(type, incomes.getOrDefault(type, 0.0) + amount);
-    }
 
     public double getTotalIncome() {
+
         return incomes.values().stream().mapToDouble(Double::doubleValue).sum();
     }
 
-    public void calculateAndDistributeBudget() {
-        double totalIncome = getTotalIncome();
-        for (ExpenseType type : ExpenseType.values()) {
-            expenses.put(type, totalIncome * type.getPercentage());
-        }
-    }
     public double getActualExpense(ExpenseType type) {
+
         return expenses.getOrDefault(type, 0.0);
+    }
+
+    public double getTotalExpenses() {
+
+        return expenses.values().stream().mapToDouble(Double::doubleValue).sum();
+    }
+
+    public void updateExpenses(Map<ExpenseType, Double> updatedExpenses) {
+        expenses.clear(); // Rensa nuvarande utgifter
+        expenses.putAll(updatedExpenses); // Uppdatera med de nya optimerade utgifterna
+        notifyObservers(); // Notifiera observerare om uppdateringen
+    }
+
+    public Map<ExpenseType, Double> getExpenses() {
+        return new HashMap<>(expenses); // Returnerar en kopia för immutabilitet
     }
 
 }

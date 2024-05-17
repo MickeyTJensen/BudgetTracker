@@ -1,12 +1,18 @@
 package org.example;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public enum ExpenseType {
-    RENT(0.20),
-    UTILITIES(0.20),
-    FOOD(0.10),
-    TRANSPORTATION(0.10),
-    ENTERTAINMENT(0.05),
-    OTHER(0.05);
+    HYRA(0.40),
+    LÅN(0.40),
+    EL(0.10),
+    VATTEN(0.10),
+    MAT(0.20),
+    TRANSPORT(0.10),
+    NÖJEN(0.05),
+
+    SPAR(0.20);
 
     private final double percentage;
 
@@ -16,5 +22,13 @@ public enum ExpenseType {
 
     public double getPercentage() {
         return percentage;
+    }
+
+    public static Map<ExpenseType, Double> getRecommendedPercentages() {
+        Map<ExpenseType, Double> percentages = new HashMap<>();
+        for (ExpenseType type : ExpenseType.values()) {
+            percentages.put(type, type.getPercentage());
+        }
+        return percentages;
     }
 }

@@ -1,53 +1,120 @@
 package org.example.View;
 
 
+import org.example.Algorithm.BudgetOptimizationAlgorithm;
+import org.example.Controller.BudgetController;
 import org.example.ExpenseType;
 import org.example.IncomeType;
 import org.example.Model.BudgetModel;
 import org.example.Observer.BudgetObserver;
+import org.example.PieChart;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-import java.util.Observable;
-
 public class BudgetView implements BudgetObserver {
     private JPanel mainPanel;
-
     private JPanel incomePanel;
     private JPanel expensePanel;
     private JPanel summaryPanel;
     private JPanel advicePanel;
+    private JPanel chartPanel;
     private JTextPane summaryTextPane;
     private JTextPane adviceTextPane;
-
+    private JButton adviceButton;
+    private JButton optimizeButton;
+    private BudgetController controller;
     private Map<IncomeType, JTextField> incomeFields = new HashMap<>();
     private Map<ExpenseType, JTextField> expenseFields = new HashMap<>();
-
     private BudgetModel model;
+    private boolean isOptimizedView = false;
+    private Map<ExpenseType, Double> originalExpenses;
 
-    public BudgetView(BudgetModel model) {
+    public BudgetView(BudgetModel model, BudgetController controller) {
         this.model = model;
+        this.controller = controller;
         model.addObserver(this);
         initializeUI();
     }
 
     private void initializeUI() {
-        mainPanel = new JPanel(new GridLayout(2, 2));
+        mainPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.BOTH;
 
+        // Set up incomePanel
         incomePanel = createInputPanel(IncomeType.class, incomeFields, "Inkomster");
-        expensePanel = createInputPanel(ExpenseType.class, expenseFields, "Utgifter");
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        mainPanel.add(incomePanel, gbc);
 
+        // Set up summaryPanel
         summaryPanel = createSummaryPanel();
-        advicePanel = createAdvicePanel();
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        mainPanel.add(summaryPanel, gbc);
 
-        mainPanel.add(incomePanel);
-        mainPanel.add(summaryPanel);
-        mainPanel.add(expensePanel);
-        mainPanel.add(advicePanel);
+        // Set up expensePanel
+        expensePanel = createInputPanel(ExpenseType.class, expenseFields, "Utgifter");
+        gbc.gridx = 2;
+        gbc.gridy = 0;
+        gbc.weightx = 1.0;
+        mainPanel.add(expensePanel, gbc);
+
+        // Set up advicePanel
+        advicePanel = createAdvicePanel();
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 3;
+        gbc.weighty = 0.25;
+        mainPanel.add(advicePanel, gbc);
+
+        // Set up chartPanel
+        chartPanel = createChartPanel();
+        gbc.gridy = 2;
+        gbc.gridwidth = 3;
+        gbc.weighty = 0.25;
+        mainPanel.add(chartPanel, gbc);
+    }
+
+    private JPanel createSummaryPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(new JLabel("Sammanfattning"), BorderLayout.NORTH);
+
+        summaryTextPane = new JTextPane();
+        summaryTextPane.setContentType("text/html");
+        summaryTextPane.setEditable(false);
+        panel.add(new JScrollPane(summaryTextPane), BorderLayout.CENTER);
+
+        adviceButton = new JButton("Rådgivning");
+        adviceButton.addActionListener(e -> controller.adviceBudget());
+
+        panel.add(adviceButton, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private JPanel createAdvicePanel() {
+        advicePanel = new JPanel(new BorderLayout());
+        advicePanel.add(new JLabel("Rådgivning"), BorderLayout.NORTH);
+
+        adviceTextPane = new JTextPane();
+        adviceTextPane.setContentType("text/html");
+        adviceTextPane.setEditable(false);
+        adviceTextPane.setText("<html><b>Rådgivning:</b><br>Tryck på 'Rådgivning' för rådgivning angående din nuvarande budget.</html>");
+        advicePanel.add(new JScrollPane(adviceTextPane), BorderLayout.CENTER);
+
+        optimizeButton = new JButton("Optimera");
+        optimizeButton.addActionListener(e -> controller.optimizeBudget());
+
+        advicePanel.add(optimizeButton, BorderLayout.SOUTH);
+
+        return advicePanel;
     }
 
     private <E extends Enum<E>> JPanel createInputPanel(Class<E> enumClass, Map<E, JTextField> map, String title) {
@@ -67,71 +134,69 @@ public class BudgetView implements BudgetObserver {
         return panel;
     }
 
-
-
-
-    public JPanel getMainPanel() {
-        return mainPanel;
+    private JPanel createChartPanel() {
+        chartPanel = new JPanel(new GridLayout(1, 2));
+        return chartPanel;
     }
 
-    private JPanel createSummaryPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(new JLabel("Sammanfattning"), BorderLayout.NORTH);
+    public void updateCharts(BudgetModel model, Map<ExpenseType, Double> originalExpenses, Map<ExpenseType, Double> optimizedExpenses) {
+        chartPanel.removeAll();
 
-        summaryTextPane = new JTextPane();
-        summaryTextPane.setContentType("text/html");  // JTextPane stöder HTML
-        summaryTextPane.setEditable(false);
-        panel.add(new JScrollPane(summaryTextPane), BorderLayout.CENTER);
+        Map<ExpenseType, Double> currentExpenses = model.getExpenses();
+        double totalIncome = model.getTotalIncome();
 
-        return panel;
-    }
+        PieChart currentChart = new PieChart("Nuvarande Ekonomi", originalExpenses != null ? originalExpenses : new HashMap<>(), totalIncome);
+        chartPanel.add(currentChart);
 
-    private JPanel createAdvicePanel() {
-        advicePanel = new JPanel(new BorderLayout());
-        advicePanel.add(new JLabel("Rådgivning"), BorderLayout.NORTH);
+        if (isOptimizedView) {
+            PieChart optimizedChart = new PieChart("Optimerad Ekonomi", optimizedExpenses != null ? optimizedExpenses : new HashMap<>(), totalIncome);
+            chartPanel.add(optimizedChart);
+        }
 
-        adviceTextPane = new JTextPane();
-        adviceTextPane.setContentType("text/html");  // JTextPane stöder HTML
-        adviceTextPane.setEditable(false);
-        advicePanel.add(new JScrollPane(adviceTextPane), BorderLayout.CENTER);
-        return advicePanel;
+        chartPanel.revalidate();
+        chartPanel.repaint();
     }
 
     @Override
     public void update(BudgetModel model) {
         SwingUtilities.invokeLater(() -> {
             double totalIncomes = model.getTotalIncome();
-            StringBuilder summary = new StringBuilder("\n<html><b>Sammanfattning:</b><br>");
+            double totalExpenses = model.getTotalExpenses();
+            StringBuilder summary = new StringBuilder("<html><b>Sammanfattning:</b><br>");
             StringBuilder advice = new StringBuilder("<html><b>Rådgivning:</b><br>");
 
-            summary.append("\nTotal Inkomster: ").append(String.format("%.2f", totalIncomes)).append("<br>");
-
+            summary.append("Totala Inkomster (efter skatt): ").append(String.format("%.2f", totalIncomes)).append(" kr<br>");
+            summary.append("Totala Utgifter: ").append(String.format("%.2f", totalExpenses)).append(" kr<br>");
             for (ExpenseType type : ExpenseType.values()) {
-                double recommendedExpense = totalIncomes * type.getPercentage();
                 double actualExpense = model.getActualExpense(type);
-                summary.append("\nTotala Utgifter: \n").append(String.format("%.2f", totalIncomes)).append("<br>") + (type.name()).append(": ").append(String.format("%.2f", actualExpense)).append("<br>");
-
-                if (actualExpense > recommendedExpense) {
-                    advice.append("<span style='color:red;'>").append(type.name()).append(": Över budget med ")
-                            .append(String.format("%.2f", actualExpense - recommendedExpense))
-                            .append("</span><br>");
-                } else {
-                    advice.append("<span style='color:green;'>").append(type.name()).append(": Inom budget med ")
-                            .append(String.format("%.2f", recommendedExpense - actualExpense))
-                            .append("</span><br>");
-                }
+                summary.append(type.name()).append(": ").append(String.format("%.2f", actualExpense)).append(" kr<br>");
             }
-
             summary.append("</html>");
             advice.append("</html>");
 
             summaryTextPane.setText(summary.toString());
             adviceTextPane.setText(advice.toString());
+
+            // Update charts with original expenses if not optimized view
+            if (!isOptimizedView) {
+                updateCharts(model, originalExpenses, new HashMap<>()); // Empty map for optimized expenses
+            }
         });
     }
 
+    public void updateAdvice(String adviceHtml) {
+        SwingUtilities.invokeLater(() -> {
+            adviceTextPane.setText(adviceHtml);
+        });
+    }
 
+    public JPanel getMainPanel() {
+        return mainPanel;
+    }
 
+    public void setController(BudgetController controller) {
+        this.controller = controller;
+    }
 
     public Map<IncomeType, JTextField> getIncomeFields() {
         return incomeFields;
@@ -141,6 +206,18 @@ public class BudgetView implements BudgetObserver {
         return expenseFields;
     }
 
+    public void setOptimizedView(boolean optimizedView) {
+        isOptimizedView = optimizedView;
+    }
+
+    public void setOriginalExpenses(Map<ExpenseType, Double> originalExpenses) {
+        this.originalExpenses = originalExpenses;
+    }
+
+    public Map<ExpenseType, Double> getOriginalExpenses() {
+        return originalExpenses;
+    }
 }
+
 
 
