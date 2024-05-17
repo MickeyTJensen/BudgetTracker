@@ -14,7 +14,7 @@ import java.util.Map;
 public class BudgetController {
     private BudgetModel model;
     private BudgetView view;
-    private Map<ExpenseType, Double> originalExpenses;
+    private Map<ExpenseType, Double> originalExpenses; // Spara de ursprungliga utgifterna (nuvarande ekonomi)
 
     public BudgetController(BudgetModel model, BudgetView view) {
         this.model = model;
@@ -24,11 +24,13 @@ public class BudgetController {
         this.originalExpenses = new HashMap<>(model.getExpenses());
     }
 
+    //Sätter vyn och kopplar kontrollern.
     public void setView(BudgetView view) {
         this.view = view;
         view.setController(this);
     }
 
+    //Initialiserar kontrollern och lägger till lyssnare för inkomst- och utgiftsfält.
     private void initController() {
         view.getIncomeFields().forEach((type, field) -> {
             field.addActionListener(e -> handleItemCreation(type, field.getText(), true));
@@ -39,6 +41,7 @@ public class BudgetController {
         });
     }
 
+    //Hanterar skapandet av budgetobjekt baserat på användarinmatning.
     private void handleItemCreation(Enum<?> type, String amountText, boolean isIncome) {
         try {
             double amount = Double.parseDouble(amountText);
@@ -55,6 +58,7 @@ public class BudgetController {
         }
     }
 
+    //Ger budgetråd baserat på nuvarande data
     public void adviceBudget() {
         double totalIncome = model.getTotalIncome();
         StringBuilder advice = new StringBuilder();
@@ -137,6 +141,7 @@ public class BudgetController {
         view.updateCharts(model, originalExpenses, new HashMap<>()); // Uppdatera med ursprungliga data
     }
 
+    //Optimerar budgeten baserat på nuvarande data och rekommendationer samt algoritm.
     public void optimizeBudget() {
         double totalIncome = model.getTotalIncome();
         Map<ExpenseType, Double> currentExpenses = new HashMap<>(originalExpenses); // Använd originalutgifter
@@ -160,7 +165,7 @@ public class BudgetController {
         StringBuilder actionAdvice = new StringBuilder("<br><b>Åtgärder:</b><br>");
 
         for (Map.Entry<ExpenseType, Double> entry : optimizedExpenses.entrySet()) {
-            double currentExpense = originalExpenses.getOrDefault(entry.getKey(), 0.0); // Använd originalutgifter
+            double currentExpense = originalExpenses.getOrDefault(entry.getKey(), 0.0); // Använd ifyllda utgifter
             double recommendedExpense = entry.getValue();
             double difference = recommendedExpense - currentExpense;
             String adjustment = difference > 0 ? "+" : "";
@@ -213,7 +218,7 @@ public class BudgetController {
         advice.append("</html>");
         view.updateAdvice(advice.toString());
 
-        // Update charts with both original and optimized expenses
+        // Uppdatera charts med både nuvarande och optimerad ekonomi
         view.setOptimizedView(true); // Visa både nuvarande och optimerad ekonomi pie charts
         view.updateCharts(model, originalExpenses, optimizedExpenses);
     }

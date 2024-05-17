@@ -1,7 +1,7 @@
 package org.example;
 
 public enum IncomeType {
-    LÖN,
-    BONUS,
-    BIDRAG
+    LÖN,   // Representerar lön som inkomsttyp
+    BONUS, // Representerar bonus som inkomsttyp
+    BIDRAG // Representerar bidrag som inkomsttyp
 }

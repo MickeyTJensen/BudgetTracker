@@ -1,7 +1,5 @@
 package org.example.View;
 
-
-import org.example.Algorithm.BudgetOptimizationAlgorithm;
 import org.example.Controller.BudgetController;
 import org.example.ExpenseType;
 import org.example.IncomeType;
@@ -29,44 +27,46 @@ public class BudgetView implements BudgetObserver {
     private Map<IncomeType, JTextField> incomeFields = new HashMap<>();
     private Map<ExpenseType, JTextField> expenseFields = new HashMap<>();
     private BudgetModel model;
-    private boolean isOptimizedView = false;
-    private Map<ExpenseType, Double> originalExpenses;
+    private boolean isOptimizedView = false; // Flagga för att indikera om vi visar den optimerade vyn
+    private Map<ExpenseType, Double> originalExpenses; // Sparar de ursprungliga utgifterna
 
+    // Konstruktor som initialiserar modellen, kontrollern och användargränssnittet
     public BudgetView(BudgetModel model, BudgetController controller) {
         this.model = model;
         this.controller = controller;
-        model.addObserver(this);
-        initializeUI();
+        model.addObserver(this); // Lägg till denna vy som observatör av modellen
+        initializeUI(); // Initiera användargränssnittet
     }
 
+    // Initialiserar användargränssnittet
     private void initializeUI() {
         mainPanel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.BOTH;
 
-        // Set up incomePanel
+        // Skapa och lägg till incomePanel
         incomePanel = createInputPanel(IncomeType.class, incomeFields, "Inkomster");
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 1.0;
         mainPanel.add(incomePanel, gbc);
 
-        // Set up summaryPanel
+        // Skapa och lägg till summaryPanel
         summaryPanel = createSummaryPanel();
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.weightx = 1.0;
         mainPanel.add(summaryPanel, gbc);
 
-        // Set up expensePanel
+        // Skapa och lägg till expensePanel
         expensePanel = createInputPanel(ExpenseType.class, expenseFields, "Utgifter");
         gbc.gridx = 2;
         gbc.gridy = 0;
         gbc.weightx = 1.0;
         mainPanel.add(expensePanel, gbc);
 
-        // Set up advicePanel
+        // Skapa och lägg till advicePanel
         advicePanel = createAdvicePanel();
         gbc.gridx = 0;
         gbc.gridy = 1;
@@ -74,7 +74,7 @@ public class BudgetView implements BudgetObserver {
         gbc.weighty = 0.25;
         mainPanel.add(advicePanel, gbc);
 
-        // Set up chartPanel
+        // Skapa och lägg till chartPanel
         chartPanel = createChartPanel();
         gbc.gridy = 2;
         gbc.gridwidth = 3;
@@ -82,6 +82,7 @@ public class BudgetView implements BudgetObserver {
         mainPanel.add(chartPanel, gbc);
     }
 
+    // Skapar panelen för sammanfattning
     private JPanel createSummaryPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.add(new JLabel("Sammanfattning"), BorderLayout.NORTH);
@@ -99,6 +100,7 @@ public class BudgetView implements BudgetObserver {
         return panel;
     }
 
+    // Skapar panelen för rådgivning
     private JPanel createAdvicePanel() {
         advicePanel = new JPanel(new BorderLayout());
         advicePanel.add(new JLabel("Rådgivning"), BorderLayout.NORTH);
@@ -117,6 +119,7 @@ public class BudgetView implements BudgetObserver {
         return advicePanel;
     }
 
+    // Skapar panelen för inmatning
     private <E extends Enum<E>> JPanel createInputPanel(Class<E> enumClass, Map<E, JTextField> map, String title) {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -134,20 +137,23 @@ public class BudgetView implements BudgetObserver {
         return panel;
     }
 
+    // Skapar panelen för diagram
     private JPanel createChartPanel() {
         chartPanel = new JPanel(new GridLayout(1, 2));
         return chartPanel;
     }
 
+    // Uppdaterar diagrammen med de ursprungliga och optimerade utgifterna
     public void updateCharts(BudgetModel model, Map<ExpenseType, Double> originalExpenses, Map<ExpenseType, Double> optimizedExpenses) {
         chartPanel.removeAll();
 
-        Map<ExpenseType, Double> currentExpenses = model.getExpenses();
         double totalIncome = model.getTotalIncome();
 
+        // Skapar diagram för nuvarande ekonomi
         PieChart currentChart = new PieChart("Nuvarande Ekonomi", originalExpenses != null ? originalExpenses : new HashMap<>(), totalIncome);
         chartPanel.add(currentChart);
 
+        // Skapar diagram för optimerad ekonomi om flaggan är satt
         if (isOptimizedView) {
             PieChart optimizedChart = new PieChart("Optimerad Ekonomi", optimizedExpenses != null ? optimizedExpenses : new HashMap<>(), totalIncome);
             chartPanel.add(optimizedChart);
@@ -157,6 +163,7 @@ public class BudgetView implements BudgetObserver {
         chartPanel.repaint();
     }
 
+    // Uppdaterar vyn när modellen ändras
     @Override
     public void update(BudgetModel model) {
         SwingUtilities.invokeLater(() -> {
@@ -177,13 +184,14 @@ public class BudgetView implements BudgetObserver {
             summaryTextPane.setText(summary.toString());
             adviceTextPane.setText(advice.toString());
 
-            // Update charts with original expenses if not optimized view
+            // Uppdatera diagram med ursprungliga utgifter om inte optimerad vy
             if (!isOptimizedView) {
-                updateCharts(model, originalExpenses, new HashMap<>()); // Empty map for optimized expenses
+                updateCharts(model, originalExpenses, new HashMap<>()); // Tom karta för optimerade utgifter
             }
         });
     }
 
+    // Uppdaterar rådgivningstexten
     public void updateAdvice(String adviceHtml) {
         SwingUtilities.invokeLater(() -> {
             adviceTextPane.setText(adviceHtml);

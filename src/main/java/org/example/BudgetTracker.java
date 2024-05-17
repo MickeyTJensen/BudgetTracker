@@ -9,6 +9,7 @@ import javax.swing.*;
 
 public class BudgetTracker {
     public static void main(String[] args) {
+        // Skapa och starta applikationen
         Application app = new Application();
         app.start();
     }

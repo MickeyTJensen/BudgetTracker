@@ -42,11 +42,13 @@ public class Application {
     }
 
     public void start() {
+        // Sätt fönstret till mitten av skärmen och visa det
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
 
     public static void main(String[] args) {
+        // Starta applikationen
         new Application().start();
     }
 }
